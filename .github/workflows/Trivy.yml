@@ -31,7 +31,7 @@ jobs:
           trivy fs . > trivy-report.txt
 
       - name: Subir reporte de Trivy
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-iac-report
           path: trivy-report.txt
