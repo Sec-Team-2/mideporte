@@ -61,24 +61,24 @@ jobs:
 
       - name: Obtener Informe de Issues de SonarCloud API
         id: get_sonar_issues
-        # Opcional: pequeña espera por si el análisis tarda en procesarse en SonarCloud
         run: |
-          sleep 20 
-          echo "Obteniendo issues de SonarCloud (${{ env.SONAR_HOST_URL }})..."
-          # Ajusta los 'types' y 'statuses' si necesitas otros distintos
-          curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
-            "${{ env.SONAR_HOST_URL }}/api/issues/search?componentKeys=${{ env.SONAR_PROJECT_KEY }}&types=VULNERABILITY,BUG&statuses=OPEN,CONFIRMED,REOPENED&ps=500" \
+          # ... (sleep, echo, API_URL, etc.) ...
+          curl -s --fail -u "${{ secrets.SONAR_TOKEN }}:" \
+            "$API_URL" \
             -o sonarcloud-issues.json
-          
-          echo "Informe de issues guardado en sonarcloud-issues.json"
+
+          echo "Comando curl finalizado. Código de salida: $?"
+          echo "--- DEBUG: Comprobando archivo generado ---"
+          ls -l sonarcloud-issues.json # Muestra si existe y el tamaño
+          echo "--- DEBUG: Primeras 10 líneas del archivo ---"
+          head -n 10 sonarcloud-issues.json # Muestra el inicio del contenido
+          echo "--- FIN DEBUG ---"
+
           if [ ! -s sonarcloud-issues.json ]; then
             echo "Error: El archivo sonarcloud-issues.json no se creó o está vacío."
-            echo "Puede que el análisis de SonarCloud aún no haya terminado o haya fallado."
             exit 1
           else
             echo "Archivo sonarcloud-issues.json generado correctamente."
-            # Opcional: Muestra las primeras líneas para depuración
-            # head sonarcloud-issues.json 
           fi
 
       - name: Cargar Informe a DefectDojo API
