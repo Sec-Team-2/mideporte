@@ -15,6 +15,10 @@ jobs:
   build:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
+
+    env:
+      SONAR_PROJECT_KEY: Sec-Team-2_mideporte
+      SONAR_HOST_URL: https://sonarcloud.io 
   
     services:
         mysql:
