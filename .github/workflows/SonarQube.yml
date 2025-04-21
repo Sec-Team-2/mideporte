@@ -52,3 +52,42 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # --- PASOS PARA INTEGRACIÓN CON DEFECTDOJO ---
+
+      - name: Obtener Informe de Issues de SonarCloud API
+        id: get_sonar_issues
+        # Opcional: pequeña espera por si el análisis tarda en procesarse en SonarCloud
+        run: |
+          sleep 20 
+          echo "Obteniendo issues de SonarCloud (${{ env.SONAR_HOST_URL }})..."
+          # Ajusta los 'types' y 'statuses' si necesitas otros distintos
+          curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
+            "${{ env.SONAR_HOST_URL }}/api/issues/search?componentKeys=${{ env.SONAR_PROJECT_KEY }}&types=VULNERABILITY,BUG&statuses=OPEN,CONFIRMED,REOPENED&ps=500" \
+            -o sonarcloud-issues.json
+          
+          echo "Informe de issues guardado en sonarcloud-issues.json"
+          if [ ! -s sonarcloud-issues.json ]; then
+            echo "Error: El archivo sonarcloud-issues.json no se creó o está vacío."
+            echo "Puede que el análisis de SonarCloud aún no haya terminado o haya fallado."
+            exit 1
+          else
+            echo "Archivo sonarcloud-issues.json generado correctamente."
+            # Opcional: Muestra las primeras líneas para depuración
+            # head sonarcloud-issues.json 
+          fi
+
+      - name: Cargar Informe a DefectDojo API
+        # Asegúrate que DEFECTDOJO_HOST incluye http:// o https:// y el puerto si no es estándar
+        # Ejemplo: http://tu-ip-publica:8080 o https://defectdojo.tu-dominio.com
+        run: |
+          echo "Cargando informe a DefectDojo (${{ secrets.DEFECTDOJO_HOST }})..."
+          curl -X POST "${{ secrets.DEFECTDOJO_HOST }}/api/v2/import-scan/" \
+            -H "Authorization: Token ${{ secrets.DEFECTDOJO_API_KEY }}" \
+            -F "scan_type=SonarQube API Import" \
+            -F "engagement=${{ secrets.DEFECTDOJO_ENGAGEMENT_ID }}" \
+            -F "file=@sonarcloud-issues.json" \
+            -F "active=true" \
+            -F "verified=true" \
+            --fail # Falla si la respuesta HTTP es un error (4xx/5xx)
+          echo "Carga a DefectDojo completada (o fallida si curl devolvió error)."
