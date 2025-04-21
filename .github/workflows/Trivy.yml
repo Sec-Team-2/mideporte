@@ -2,18 +2,18 @@ name: Trivy IaC Scan
 
 on:
   push:
-    branches: 
+    branches:
       - main
     tags:
       - 'v*'
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: 
+    branches:
       - main
 
 jobs:
   trivy_scan:
-    name: Ejecutar escaneo IaC con Trivy
+    name: Ejecutar escaneo IaC con Trivy y reportar a DefectDojo
     runs-on: ubuntu-latest
 
     steps:
@@ -26,12 +26,28 @@ jobs:
           wget "https://github.com/aquasecurity/trivy/releases/download/${latest_version}/trivy_${latest_version:1}_Linux-64bit.deb"
           sudo dpkg -i "trivy_${latest_version:1}_Linux-64bit.deb"
 
-      - name: Ejecutar escaneo Trivy en archivos IaC
+      - name: Ejecutar escaneo Trivy en archivos IaC (JSON)
         run: |
-          trivy fs . > trivy-report.txt
+          trivy fs --format json --output trivy-report.json .
 
-      - name: Subir reporte de Trivy
+      - name: Subir reporte como artifact
         uses: actions/upload-artifact@v4
         with:
           name: trivy-iac-report
-          path: trivy-report.txt
+          path: trivy-report.json
+
+      - name: Enviar reporte a DefectDojo
+        run: |
+          curl -k -X POST "$DOJO_HOST/api/v2/import-scan/" \
+            -H "Authorization: Token $DOJO_API_KEY" \
+            -F "scan_type=Trivy Scan" \
+            -F "minimum_severity=Low" \
+            -F "active=true" \
+            -F "verified=true" \
+            -F "scan_date=$(date +%F)" \
+            -F "engagement=$DOJO_ENGAGEMENT_ID" \
+            -F "file=@trivy-report.json"
+        env:
+          DOJO_HOST: ${{ secrets.DEFECTDOJO_HOST }}
+          DOJO_API_KEY: ${{ secrets.DEFECTDOJO_API_KEY }}
+          DOJO_ENGAGEMENT_ID: ${{ secrets.DEFECTDOJO_ENGAGEMENT_ID }}
