@@ -59,13 +59,13 @@ jobs:
 
       # --- PASOS PARA INTEGRACIÓN CON DEFECTDOJO ---
 
-      - name: Obtener Informe de Issues de SonarCloud API
+      - name: Get data from SonarCloud
         id: get_sonar_issues
         run: |
           # Define la URL de la API usando las variables de entorno del Job
           API_URL="${{ env.SONAR_HOST_URL }}/api/issues/search?componentKeys=${{ env.SONAR_PROJECT_KEY }}&types=VULNERABILITY,BUG&statuses=OPEN,CONFIRMED,REOPENED&ps=500"
           
-          # Imprime la URL para depuración (¡Importante!)
+          # Imprime la URL para depuración
           echo "DEBUG: URL construida: $API_URL" 
           
           # Opcional: pequeña espera
@@ -82,7 +82,7 @@ jobs:
           # Guarda el código de salida de curl ANTES de ejecutar otros comandos
           CURL_EXIT_CODE=$? 
           
-          # Imprime el código de salida de curl (¡Importante!)
+          # Imprime el código de salida de curl
           echo "Comando curl finalizado. Código de salida: $CURL_EXIT_CODE" 
           
           echo "--- DEBUG: Comprobando archivo generado ---"
@@ -100,9 +100,7 @@ jobs:
             echo "Archivo sonarcloud-issues.json generado correctamente."
           fi
 
-      - name: Cargar Informe a DefectDojo API
-        # Asegúrate que DEFECTDOJO_HOST incluye http:// o https:// y el puerto si no es estándar
-        # Ejemplo: http://tu-ip-publica:8080 o https://defectdojo.tu-dominio.com
+      - name: Upload data toDefectDojo
         run: |
           echo "Cargando informe a DefectDojo (${{ secrets.DEFECTDOJO_HOST }})..."
           curl -X POST "${{ secrets.DEFECTDOJO_HOST }}/api/v2/import-scan/" \
